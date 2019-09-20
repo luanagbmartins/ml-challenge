@@ -68,7 +68,7 @@ def clean_text(text):
     text = re_quotes_2.sub(r'"\1', text)
     text = re_quotes_3.sub('"', text)
     text = re.sub('"', '', text)
-    text = re_dots.sub('.', text)
+    text = re_dots.sub(' . ', text)
     text = re_punctuation.sub(r'\1', text)
     text = re_hiphen.sub(' - ', text)
     text = re_punkts.sub(r'\1 \2 \3', text)
@@ -94,24 +94,24 @@ def preprocessing(f_in, f_out):
             stdout.write('Reading lines...')
             stdout.write('%8d/%8d \r' % (i + 1, wc_l))
             stdout.flush()
-            txt.append(clean_text(line))
+            txt.append(str(clean_text(line)))
 
-    # Tokenize and remove short and malformed sentences.
-    for line in txt:
-        for sent in sent_tokenizer.tokenize(line):
-            if sent.count(' ') >= 3 and sent[-1] in ['.', '!', '?', ';']:
-                if sent[0:2] == '- ':
-                    sent = sent[2:]
-                elif sent[0] == ' ' or sent[0] == '-':
-                    sent = sent[1:]
-                final.append(sent)
+    # # Tokenize and remove short and malformed sentences.
+    # for line in txt:
+    #     for sent in sent_tokenizer.tokenize(line):
+    #         if sent.count(' ') >= 3 and sent[-1] in ['.', '!', '?', ';']:
+    #             if sent[0:2] == '- ':
+    #                 sent = sent[2:]
+    #             elif sent[0] == ' ' or sent[0] == '-':
+    #                 sent = sent[1:]
+    #             final.append(sent)
 
-    vocab, tokens = set(), 0
+    # vocab, tokens = set(), 0
     with open(f_out, 'w', encoding='utf8') as fp:
-        for sent in final:
+        for sent in txt:
             fp.write('%s\n' % sent)
-            tokens += sent.count(' ') + 1
-            for w in sent.split():
-                vocab.add(w)
+            # tokens += sent.count(' ') + 1
+            # for w in sent.split():
+            #     vocab.add(w)
 
     print('Done')

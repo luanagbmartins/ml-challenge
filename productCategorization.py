@@ -1,147 +1,166 @@
 import numpy as np
-from preprocessing import preprocessing
 import pickle
 import pandas as pd
+import time
+import csv
+
+# from preprocessing import preprocessing
+
 from stop_words import get_stop_words
-from gensim import corpora
+
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.ensemble import RandomForestRegressor
+
 from sklearn.naive_bayes import MultinomialNB
 
-def remove_stopwords(rev, stop_words):
-    rev_new = " ".join([i for i in rev if i not in stop_words])
-    return rev_new
+from gensim.utils import simple_preprocess
 
-if __name__ == '__main__':
-
+def load_dataset(filename):
+    start = time.time()
     print('Loading dataset...')
 
-    # file = 'data/train.csv'
-    # data_train = pd.read_csv(file)
+    data = pd.read_csv(filename)
+    data.drop(columns='label_quality')
+    data.drop_duplicates(subset ="title", 
+                               keep = False,
+                               inplace = True)
+    
+    print('Data shape: ', data.shape)
+    end = time.time()
+    print('Loaded! - Time:', round(end-start, 4))
+    return data
 
-    # data_train.drop(columns='label_quality')
-    # data_train.drop_duplicates(subset ="title", 
-    #                            keep = False,
-    #                            inplace = True)
 
-    ###################################
+def generate_subdataset(data, language):
+    start = time.time()
+    print('Generating ', language, ' dataset')
 
-    print('Generating portuguese dataset')
+    data = data.loc[data['language'] == language]
 
-    # data_pt = data_train.loc[data_train['language'] == 'portuguese']
+    category = data['category']
+    data = data['title']
 
-    # category_pt = data_pt['category']
-    # data_pt = data_pt['title']
+    nCategory = 'data/category_pt.csv' if language=='portuguese' else 'data/category_sp.csv'
+    nData = 'data/data_pt.csv' if language=='portuguese' else 'data/data_sp.csv'
+    category.to_csv(nCategory, index=False, header=False)
+    data.to_csv(nData, index=False, header=False)
 
-    # category_pt.to_csv(r'category_pt.csv', index=False, header=False)
-    # data_pt.to_csv(r'data_pt.csv', index=False, header=False)
+    print('Data shape ', data.shape)
+    print('Category shape ', category.shape)
 
-    # del category_pt
-    # del data_pt
+    end = time.time()
+    print('CSV files saved! - Time:', round(end-start, 4))
 
-    ###################################
 
-    print('Generating portuguese dataset')
+def clean_text(text):
+    text = str(text)
+    text2 = ''
+    for token in simple_preprocess(text):
+        if len(token) > 1:
+            text2 += token + ' '
 
-    # data_sp = data_train.loc[data_train['language'] == 'spanish']
+    return text2
 
-    # category_sp = data_sp['category']
-    # data_sp = data_sp['title']
 
-    # category_sp.to_csv(r'category_sp.csv', index=False, header=False)
-    # data_sp.to_csv(r'data_sp.csv', index=False, header=False)
+def preprocessing_file(input, output, language):
+    start = time.time()
+    print('Preprocessing ', language, ' data')
 
-    # del category_sp
-    # del data_sp
+    data = pd.read_csv(input, names=['title'])
+    print('Initial data shape ', data.shape)
 
-    ###################################
+    text_corpus = []
+    for sentence in data['title']:
+        text_corpus.append(clean_text(sentence))
+        
+    data = pd.DataFrame(data=text_corpus, columns=['title'])
 
-    # del data_train
+    data.to_csv(output, index=False, header=False)
 
-    ###################################
+    print('Final data shape ', data.shape)
+    
+    end = time.time()
+    print('Preprocess completed! - Time:', round(end-start, 4))
 
-    print('Preprocessing portuguese data')
 
-    # preprocessing('data_pt.csv', 'output_pt.csv')
+# def preprocessing_data(input, output, preprocess=True):
+#     start = time.time()
+#     print('Preprocessing data')
 
-    data_pt = pd.read_csv('output_pt.csv', sep='\n', names=['title'])
-    data_pt['title'] = data_pt['title'].str.replace("[^a-zA-Z#]", "")
-    data_pt['title'] = data_pt['title'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>3]))
-    stop_words = get_stop_words('portuguese')
-    data_pt = [remove_stopwords(r.split(), stop_words) for r in data_pt['title']]
-    data_pt = pd.Series(data_pt).apply(lambda x: x.split())
+#     if preprocess: preprocessing(input, output)
 
-    print('Generating portuguese dictionary')
+#     data = pd.read_csv(output, sep='\n', names=['title'])
+#     print('Data shape ', data.shape)
 
-    dictionary = corpora.Dictionary(data_pt)
-    dictionary.filter_extremes(no_below=20, no_above=0.8)
-    doc_term_matrix = [dictionary.doc2bow(rev) for rev in data_pt]
-    dictionary.save_as_text('dictionary.txt')
+#     # data['title'] = data['title'].str.replace("[0-9]", "")
+#     data['title'] = data['title'].str.replace("[-,._/!]", "")
+#     data['title'] = data['title'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>2]))
+#     data.to_csv('data/pData.csv', index=False, header=False)
 
-    # del data_pt
-    # del dictionary
+#     print('Data shape ', data.shape)
+    
+#     end = time.time()
+#     print('Preprocess completed! - Time:', round(end-start, 4))
 
-    ###################################
 
-    print('Portuguese TF-IDF')
- 
-    from gensim.models import TfidfModel
-    tfidf = TfidfModel(dictionary=dictionary, normalize=True)
-    xTrain = [tfidf[dictionary.doc2bow(doc)] for doc in data_pt]
-    tfidf.save('tfidf.pkl')
- 
-    print(len(xTrain))
+def token_counts(input, output, language):
+    start = time.time()
+    print('Converting a collection of ', language, ' text documents to a matrix of token counts')
 
-    del data_pt
-    del dictionary
+    stop_words = get_stop_words(language)
+    count_vec = CountVectorizer(stop_words=stop_words)
 
-    ###################################
+    data = pd.read_csv(input, names=['title'])
+    data = data.replace(np.nan, "null", regex=True)
+    data = data.replace("", "null", regex=True)
+    print('Data shape ', data.shape)
 
-    print('Training portuguese model')
+    vectorizer = count_vec.fit_transform(data['title'])
 
-    loaded_category = pd.read_csv('category_pt.csv', names=['category'])
-    yTrain = np.array(loaded_category['category']).flatten()
-    clf = MultinomialNB().fit(xTrain, yTrain)
-    pickle.dump(clf, open('model_pt.sav', 'wb')) 
+    pickle.dump(vectorizer,open(output, 'wb'))
+    
+    end = time.time()
+    print('Generated bag-of-words - Time:', round(end-start, 4))
 
-    del xTrain
-    del loaded_category
-    del clf
 
-    # ###################################
+def tfidf(input, output, language):
+    start = time.time()
+    print('Transforming a ', language, ' count matrix to a normalized tf-idf representation')
+    
+    tfidf_transformer = TfidfTransformer()
+    loaded_vec = pickle.load(open(input, 'rb'))
+    fit_tfidf = tfidf_transformer.fit_transform(loaded_vec)
+    pickle.dump(fit_tfidf, open(output, 'wb'))
 
-    # print('Preprocessing spanish data')
+    end = time.time()
+    print('TF-IDF transformer completed! - Time:', round(end-start, 4))
 
-    # preprocessing('data_sp.csv', 'output_sp.csv')
 
-    # data_sp = pd.read_csv('output_sp.csv')
-    # data_sp['title'] = data_sp['title'].str.replace("[^a-zA-Z#]", "")
-    # data_sp['title'] = data_sp['title'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>3]))
-    # data_sp = pd.Series(data_sp).apply(lambda x: x.split())
+def train(input, output, csvFile, language):
+    start = time.time()
+    print('Training ', language, ' model')
 
-    # print('Generating spanish dictionary')
+    loaded_tfidf = pickle.load(open(input, 'rb'))
+    X = loaded_tfidf.toarray()
 
-    # dictionary = corpora.Dictionary(data_sp)
-    # dictionary.filter_extremes(no_below=20, no_above=0.8)
-    # doc_term_matrix = [dictionary.doc2bow(rev) for rev in data_sp]
+    y = pd.read_csv(csvFile, names=['category'])
+    y = y['category'].toarray()
 
-    # del data_sp
-    # del dictionary
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    # ###################################
+    # classifier = RandomForestClassifier(n_estimators=1000, random_state=0)
+    classifier = MultinomialNB()
+    classifier.fit(X_train, y_train) 
+    y_pred = classifier.predict(X_test)
 
-    # print('Spanish TF-IDF')
+    print(confusion_matrix(y_test,y_pred))
+    print(classification_report(y_test,y_pred))
+    print(accuracy_score(y_test, y_pred))
 
-    # xTrain = TfidfTransformer().fit_transform(doc_term_matrix)
+    pickle.dump(classifier, output)
 
-    # ###################################
-
-    # print('Training spanish model')
-
-    # loaded_category = pd.read_csv('category_sp.csv')
-    # clf = MultinomialNB().fit(xTrain, loaded_category)
-    # pickle.dump(clf, open('model_sp.sav', 'wb')) 
-
-    # del xTrain
-    # del loaded_category
-    # del clf
+    end = time.time()
+    print('Training completed! - ', round(end-start, 4))
