@@ -12,10 +12,10 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from sklearn.ensemble import RandomForestRegressor
-
+from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from gensim.utils import simple_preprocess
 
 def load_dataset(filename):
@@ -143,21 +143,27 @@ def train(input, output, csvFile, language):
     start = time.time()
     print('Training ', language, ' model')
 
-    loaded_tfidf = pickle.load(open(input, 'rb'))
-    X = loaded_tfidf.toarray()
+    X = pickle.load(open(input, 'rb'))
+    # X = np.array(loaded_tfidf, dtype='float16')
+    # del loaded_tfidf
 
-    y = pd.read_csv(csvFile, names=['category'])
-    y = y['category'].toarray()
+    y = pd.read_csv(csvFile, names=['category']).values.ravel()
+    # y = np.array(y['category'], dtype='float16')
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    # classifier = RandomForestClassifier(n_estimators=1000, random_state=0)
-    classifier = MultinomialNB()
-    classifier.fit(X_train, y_train) 
+    models = [
+        LinearSVC(),
+        MultinomialNB(),
+        LogisticRegression(random_state=0)
+    ]
+
+    classifier = models[0]
+    classifier.fit(X_train, y_train)
     y_pred = classifier.predict(X_test)
 
     print(confusion_matrix(y_test,y_pred))
-    print(classification_report(y_test,y_pred))
+    # print(classification_report(y_test,y_pred))
     print(accuracy_score(y_test, y_pred))
 
     pickle.dump(classifier, output)
