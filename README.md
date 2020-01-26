@@ -1,12 +1,5 @@
 # Mercado Livre Data Challenge 2019
 The Mercado Livre Data Challenge is a Latin America competition to fit a model to categorize product's listing based on their titles. For more details see [MeLi Data Challenge](https://ml-challenge.mercadolibre.com/).
-### Important dates
-- **September 3, 2019:** Registration open
-- **September 21, 2019:** Registration closing
-- **October 1, 2019:** Competition completion
-- **October 15, 2019:** Winners announcement
-- **November 11-15, 2019:** [Khipu](https://khipu.ai/)
-
 
 ## Install
 ### Download the code
