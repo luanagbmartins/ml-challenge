@@ -23,7 +23,7 @@ Download the data files from [MeLi Downloads](https://ml-challenge.mercadolibre.
 - data/train.csv
 - data/test.csv
 
-## Generate the solution
+## Training
 
 The training pipeline is divided by following steps:
 - Generate Subdataset: Split original dataset into portuguese and spanish dataset.
