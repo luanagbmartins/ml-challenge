@@ -11,22 +11,23 @@ git clone https://github.com/luanagbmartins/ml-challenge.git
 ### Dependencies
 You will need the following dependencies:
 - python 3
+- conda. (Optional for environment creation and management)
+
+Create the environment from the environment.yml file:
+```
+conda env create -f environment.yml
+```
 
 ### Download the training data
 Download the data files from [MeLi Downloads](https://ml-challenge.mercadolibre.com/downloads). Place and extract the files in the following locations:
 - data/train.csv
 - data/test.csv
 
-
-## Descriptions
-### Dataset
-Each line of the training set corresponds to an article in [Mercado Livre](https://www.mercadolivre.com.br/). The columns are as follows:
-
-
-### Model
-_
-
 ## Generate the solution
-_
 
-**(I'm still organizing this repository)**
+The training pipeline is divided by following steps:
+- Generate Subdataset: Split original dataset into portuguese and spanish dataset.
+- Preprocessing: Apply the preprocessing function to wich dataset.
+- Token Counts: Converting a collection of text documents to a matrix of token counts.
+- TF-IDF: Transforming a count matrix to a normalized TF-IDF representation.
+- Train: Train a Classifier model. Choose between: linearSVC, multinomialNB, logisticRegression.

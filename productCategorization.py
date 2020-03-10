@@ -4,19 +4,16 @@ import pandas as pd
 import time
 import csv
 
-# from preprocessing import preprocessing
-
 from stop_words import get_stop_words
+from gensim.utils import simple_preprocess
 
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from gensim.utils import simple_preprocess
 
 def load_dataset(filename):
     start = time.time()
@@ -86,26 +83,6 @@ def preprocessing_file(input, output, language):
     print('Preprocess completed! - Time:', round(end-start, 4))
 
 
-# def preprocessing_data(input, output, preprocess=True):
-#     start = time.time()
-#     print('Preprocessing data')
-
-#     if preprocess: preprocessing(input, output)
-
-#     data = pd.read_csv(output, sep='\n', names=['title'])
-#     print('Data shape ', data.shape)
-
-#     # data['title'] = data['title'].str.replace("[0-9]", "")
-#     data['title'] = data['title'].str.replace("[-,._/!]", "")
-#     data['title'] = data['title'].apply(lambda x: ' '.join([w for w in x.split() if len(w)>2]))
-#     data.to_csv('data/pData.csv', index=False, header=False)
-
-#     print('Data shape ', data.shape)
-    
-#     end = time.time()
-#     print('Preprocess completed! - Time:', round(end-start, 4))
-
-
 def token_counts(input, output, language):
     start = time.time()
     print('Converting a collection of ', language, ' text documents to a matrix of token counts')
@@ -139,31 +116,26 @@ def tfidf(input, output, language):
     print('TF-IDF transformer completed! - Time:', round(end-start, 4))
 
 
-def train(input, output, csvFile, language):
+def train(input, output, csvFile, language, model):
     start = time.time()
     print('Training ', language, ' model')
 
     X = pickle.load(open(input, 'rb'))
-    # X = np.array(loaded_tfidf, dtype='float16')
-    # del loaded_tfidf
-
     y = pd.read_csv(csvFile, names=['category']).values.ravel()
-    # y = np.array(y['category'], dtype='float16')
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    models = [
-        LinearSVC(),
-        MultinomialNB(),
-        LogisticRegression(random_state=0)
-    ]
+    models = {
+        'linearSVC': LinearSVC(),
+        'multinomialNB': MultinomialNB(),
+        'logisticRegression': LogisticRegression(random_state=0)
+    }
 
-    classifier = models[0]
+    classifier = models[model]
     classifier.fit(X_train, y_train)
     y_pred = classifier.predict(X_test)
 
     print(confusion_matrix(y_test,y_pred))
-    # print(classification_report(y_test,y_pred))
     print(accuracy_score(y_test, y_pred))
 
     pickle.dump(classifier, output)
